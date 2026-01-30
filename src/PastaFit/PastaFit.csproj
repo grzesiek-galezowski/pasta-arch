@@ -10,4 +10,8 @@
     <PackageReference Include="FunqTypes" Version="1.2.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Shell\Infrastructure\" />
+  </ItemGroup>
+
 </Project>

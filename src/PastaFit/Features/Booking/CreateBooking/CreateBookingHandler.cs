@@ -1,5 +1,6 @@
 ﻿using FunqTypes;
 using PastaFit.Core.Domain;
+using PastaFit.Features.Booking.Ports;
 using static FunqTypes.Result<PastaFit.Core.Domain.Booking, PastaFit.Core.Domain.BookingError>;
 
 namespace PastaFit.Features.Booking.CreateBooking;
@@ -9,7 +10,7 @@ public static class CreateBookingHandler
     public static async Task<Result<Core.Domain.Booking, BookingError>> Handle(
         Guid memberId,
         Guid classId,
-        CreateBookingDependencies deps)
+        ICreateBookingRepository deps)
     {
         var memberResult = await deps.GetMember(memberId);
         if (!memberResult.IsSuccess)

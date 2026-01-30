@@ -1,0 +1,86 @@
+﻿using FunqTypes;
+using PastaFit.Core.Domain;
+using PastaFit.Features.Booking.Ports;
+
+namespace PastaFit.Features.Booking.Adapters;
+
+public class InMemoryBookingRepository : ICreateBookingRepository, ICancelBookingRepository
+{
+  private static readonly List<Core.Domain.Booking> Bookings = new();
+  private static readonly Dictionary<Guid, Class> Classes = new();
+  private static readonly Dictionary<Guid, Member> Members = new();
+
+  public void Bootstrap()
+  {
+    var yoga = new Class(Guid.NewGuid(), "Yoga", 5);
+    var spin = new Class(Guid.NewGuid(), "Spin", 3);
+
+    Classes[yoga.Id] = yoga;
+    Classes[spin.Id] = spin;
+
+    var alice = new Member(Guid.NewGuid(), "Alice", true);
+    var bob = new Member(Guid.NewGuid(), "Bob", false);
+    var john = new Member(Guid.NewGuid(), "John", false);
+    var maggy = new Member(Guid.NewGuid(), "Maggy", true);
+    var chuck = new Member(Guid.NewGuid(), "Chuck", true);
+    var julia = new Member(Guid.NewGuid(), "Julia", true);
+
+    Members[alice.Id] = alice;
+    Members[bob.Id] = bob;
+    Members[john.Id] = john;
+    Members[maggy.Id] = maggy;
+    Members[chuck.Id] = chuck;
+    Members[julia.Id] = julia;
+  }
+
+  public Task<Result<Core.Domain.Booking, BookingError>> GetBooking(Guid id) =>
+    Task.FromResult(
+      Bookings.FirstOrDefault(b => b.Id == id) is { } booking
+        ? Result<Core.Domain.Booking, BookingError>.Ok(booking)
+        : Result<Core.Domain.Booking, BookingError>.Fail(new BookingError.BookingNotFound())
+    );
+
+  public Task<bool> HasExistingBooking(Guid memberId, Guid classId) =>
+    Task.FromResult(Bookings.Any(b => b.MemberId == memberId && b.ClassId == classId));
+
+  public Task SaveBooking(Core.Domain.Booking booking)
+  {
+    Bookings.Add(booking);
+    return Task.CompletedTask;
+  }
+
+  public Task<Result<Class, BookingError>> GetClass(Guid classId) =>
+    Task.FromResult(
+      Classes.TryGetValue(classId, out var cls)
+        ? Result<Class, BookingError>.Ok(cls)
+        : Result<Class, BookingError>.Fail(new BookingError.ClassNotFound()));
+
+  public Task<Result<Member, BookingError>> GetMember(Guid memberId) =>
+    Task.FromResult(
+      Members.TryGetValue(memberId, out var member)
+        ? Result<Member, BookingError>.Ok(member)
+        : Result<Member, BookingError>.Fail(new BookingError.MemberNotFound()));
+
+  public Task<bool> IsClassFull(Guid classId)
+  {
+    if (!Classes.TryGetValue(classId, out var cls)) return Task.FromResult(true);
+    var bookings = Bookings.Count(b => b.ClassId == classId);
+    return Task.FromResult(bookings >= cls.Capacity);
+  }
+
+  public Task CancelBooking(Guid bookingId)
+  {
+    Bookings.RemoveAll(b => b.Id == bookingId);
+    return Task.CompletedTask;
+  }
+
+  public static IEnumerable<object> GetClassAvailability() => Classes.Values.Select(cls => new
+  {
+    cls.Id,
+    cls.Name,
+    cls.Capacity,
+    Available = cls.Capacity - Bookings.Count(b => b.ClassId == cls.Id)
+  });
+
+  public static IEnumerable<Member> GetAllMembers() => Members.Values;
+}
