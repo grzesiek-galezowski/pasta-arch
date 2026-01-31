@@ -2,12 +2,12 @@
 using PastaFit.Core.Domain;
 using PastaFit.Features.Booking.Ports;
 
-namespace PastaFit.Features.Booking.CreateBooking;
+namespace PastaFit.Features.Booking.Adapters;
 
-public class CreateBookingResponseInProgress //bug move to adapters
+public class CreateBookingResponseInProgress
   : ICreateBookingResponseInProgress
 {
-  public IResult Result { get; private set; }
+  public IResult Result { get; private set; } = Results.InternalServerError();
 
   public void AlreadyBooked()
   {
