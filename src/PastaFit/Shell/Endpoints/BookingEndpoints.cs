@@ -13,11 +13,9 @@ public static class BookingEndpoints
             BookingRequest request,
             ICreateBookingRepository deps) =>
         {
-            var result = await CreateBookingHandler.Handle(request.MemberId, request.ClassId, deps);
-            return result.Match(
-                booking => Results.Created($"/bookings/{booking.Id}", booking),
-                Results.BadRequest
-            );
+          var responseInProgress = new CreateBookingResponseInProgress();
+          await CreateBookingHandler.Handle(request.MemberId, request.ClassId, deps, responseInProgress);
+          return responseInProgress.Result;
         });
         
         app.MapDelete("/bookings/{bookingId:guid}", async (

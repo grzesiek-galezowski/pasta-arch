@@ -3,6 +3,7 @@ using NSubstitute;
 using PastaFit.Core.Domain;
 using PastaFit.Features.Booking.CreateBooking;
 using PastaFit.Features.Booking.Ports;
+using TddXt.XNSubstitute;
 
 namespace PastaFit.UnitTests;
 
@@ -13,14 +14,18 @@ public class CreateBookingHandlerTests
   {
     var memberId = Guid.NewGuid();
     var repository = Substitute.For<ICreateBookingRepository>();
-    
-    repository.GetMember(memberId)
-      .Returns(Task.FromResult(Result<Member, BookingError>.Fail(new BookingError.MemberNotFound())));
+    var response = Substitute.For<ICreateBookingResponseInProgress>();
 
-    var result = await CreateBookingHandler.Handle(memberId, Guid.NewGuid(), repository);
+    var fail = Result<Member, BookingError>.Fail(new BookingError.MemberNotFound());
+    repository.GetMember(memberId).Returns(fail);
 
-    Assert.False(result.IsSuccess);
-    Assert.Contains(result.Errors, e => e is BookingError.MemberNotFound);
+    await CreateBookingHandler.Handle(
+      memberId,
+      Guid.NewGuid(),
+      repository,
+      response);
+
+    response.ReceivedOnly(1).CouldNotFindMember(fail);
   }
 
   [Fact]
@@ -28,16 +33,23 @@ public class CreateBookingHandlerTests
   {
     var memberId = Guid.NewGuid();
     var classId = Guid.NewGuid();
+    var response = Substitute.For<ICreateBookingResponseInProgress>();
     var repository = Substitute.For<ICreateBookingRepository>();
-    repository.HasExistingBooking(memberId, classId).Returns(Task.FromResult(false));
-    repository.IsClassFull(classId).Returns(Task.FromResult(true));
-    repository.GetMember(memberId).Returns(Task.FromResult(Result<Member, BookingError>.Ok(new Member(Guid.NewGuid(), "Alice", true))));
-    repository.GetClass(classId).Returns(Task.FromResult(Result<Class, BookingError>.Ok(new Class(Guid.NewGuid(), "Yoga", 5))));
+    
+    repository.HasExistingBooking(memberId, classId).Returns(false);
+    repository.IsClassFull(classId).Returns(true);
+    repository.GetMember(memberId).Returns(
+      Result<Member, BookingError>.Ok(new Member(Guid.NewGuid(), "Alice", true)));
+    repository.GetClass(classId)
+      .Returns(Result<Class, BookingError>.Ok(new Class(Guid.NewGuid(), "Yoga", 5)));
 
-    var result = await CreateBookingHandler.Handle(memberId, classId, repository);
-
-    Assert.False(result.IsSuccess);
-    Assert.Contains(result.Errors, e => e is BookingError.ClassFull);
+    await CreateBookingHandler.Handle(
+      memberId,
+      classId,
+      repository,
+      response);
+    
+    response.ReceivedOnly(1).ClassFull();
   }
 
   [Fact]
@@ -45,13 +57,18 @@ public class CreateBookingHandlerTests
   {
     var repo = Substitute.For<ICreateBookingRepository>();
     var memberId = Guid.NewGuid();
+    var response = Substitute.For<ICreateBookingResponseInProgress>();
 
-    repo.GetMember(memberId).Returns(Task.FromResult(Result<Member, BookingError>.Ok(new Member(Guid.NewGuid(), "Bob", false))));
+    repo.GetMember(memberId).Returns(
+      Result<Member, BookingError>.Ok(new Member(Guid.NewGuid(), "Bob", false)));
 
-    var result = await CreateBookingHandler.Handle(memberId, Guid.NewGuid(), repo);
+    await CreateBookingHandler.Handle(
+      memberId,
+      Guid.NewGuid(),
+      repo,
+      response);
 
-    Assert.False(result.IsSuccess);
-    Assert.Contains(result.Errors, e => e is BookingError.MemberInactive);
+    response.ReceivedOnly(1).MemberInactive();
   }
 
   [Fact]
@@ -59,14 +76,42 @@ public class CreateBookingHandlerTests
   {
     var memberId = Guid.NewGuid();
     var classId = Guid.NewGuid();
+    var response = Substitute.For<ICreateBookingResponseInProgress>();
     var repo = Substitute.For<ICreateBookingRepository>();
-    repo.HasExistingBooking(memberId, classId).Returns(Task.FromResult(true));
-    repo.GetMember(memberId).Returns(Task.FromResult(Result<Member, BookingError>.Ok(new Member(Guid.NewGuid(), "Charlie", true))));
-    repo.GetClass(classId).Returns(Task.FromResult(Result<Class, BookingError>.Ok(new Class(Guid.NewGuid(), "Yoga", 5))));
+    
+    repo.HasExistingBooking(memberId, classId).Returns(true);
+    repo.GetMember(memberId).Returns(
+      Result<Member, BookingError>.Ok(new Member(Guid.NewGuid(), "Charlie", true)));
+    repo.GetClass(classId)
+      .Returns(Result<Class, BookingError>.Ok(new Class(Guid.NewGuid(), "Yoga", 5)));
 
-    var result = await CreateBookingHandler.Handle(memberId, classId, repo);
+    await CreateBookingHandler.Handle(
+      memberId,
+      classId,
+      repo,
+      response);
 
-    Assert.False(result.IsSuccess);
-    Assert.Contains(result.Errors, e => e is BookingError.AlreadyBooked);
+    response.ReceivedOnly(1).AlreadyBooked();
+  }
+
+  [Fact]
+  public async Task Fails_If_Class_Not_Found()
+  {
+    var memberId = Guid.NewGuid();
+    var classId = Guid.NewGuid();
+    var repo = Substitute.For<ICreateBookingRepository>();
+    var response = Substitute.For<ICreateBookingResponseInProgress>();
+    var getClassResult = Result<Class, BookingError>.Fail(new BookingError.ClassNotFound());
+
+    repo.GetMember(memberId).Returns(Result<Member, BookingError>.Ok(new Member(Guid.NewGuid(), "David", true)));
+    repo.GetClass(classId).Returns(getClassResult);
+
+    await CreateBookingHandler.Handle(
+      memberId,
+      classId,
+      repo,
+      response);
+
+    response.ReceivedOnly(1).CouldNotGetClass(getClassResult);
   }
 }

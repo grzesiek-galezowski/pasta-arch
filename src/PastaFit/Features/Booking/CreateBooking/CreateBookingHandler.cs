@@ -1,37 +1,52 @@
-﻿using FunqTypes;
-using PastaFit.Core.Domain;
-using PastaFit.Features.Booking.Ports;
-using static FunqTypes.Result<PastaFit.Core.Domain.Booking, PastaFit.Core.Domain.BookingError>;
+﻿using PastaFit.Features.Booking.Ports;
 
 namespace PastaFit.Features.Booking.CreateBooking;
 
 public static class CreateBookingHandler
 {
-    public static async Task<Result<Core.Domain.Booking, BookingError>> Handle(
-        Guid memberId,
-        Guid classId,
-        ICreateBookingRepository deps)
+  public static async Task Handle(
+    Guid memberId,
+    Guid classId,
+    ICreateBookingRepository repo,
+    ICreateBookingResponseInProgress response)
+  {
+    var memberResult = await repo.GetMember(memberId);
+    if (memberResult.IsSuccess)
     {
-        var memberResult = await deps.GetMember(memberId);
-        if (!memberResult.IsSuccess)
-            return Fail(memberResult.Errors.ToArray());
-
-        if (!memberResult.Value.IsActive)
-            return Fail(new BookingError.MemberInactive());
-
-        var classResult = await deps.GetClass(classId);
-        if (!classResult.IsSuccess)
-            return Fail(classResult.Errors.ToArray());
-
-        if (await deps.HasExistingBooking(memberId, classId))
-            return Fail(new BookingError.AlreadyBooked());
-
-        if (await deps.IsClassFull(classId))
-            return Fail(new BookingError.ClassFull());
-
-        var booking = new Core.Domain.Booking(Guid.NewGuid(), memberId, classId, DateTime.UtcNow);
-        await deps.SaveBooking(booking);
-
-        return booking;
+      if (memberResult.Value.IsActive)
+      {
+        var classResult = await repo.GetClass(classId);
+        if (classResult.IsSuccess)
+        {
+          if (await repo.HasExistingBooking(memberId, classId))
+          {
+            response.AlreadyBooked();
+          }
+          else if (await repo.IsClassFull(classId))
+          {
+            response.ClassFull();
+          }
+          else
+          {
+            var booking = new Core.Domain.Booking(Guid.NewGuid(), memberId, classId, DateTime.UtcNow);
+            await repo.SaveBooking(booking);
+            
+            response.BookingSuccessfullyCreated(booking);
+          }
+        }
+        else
+        {
+          response.CouldNotGetClass(classResult);
+        }
+      }
+      else
+      {
+        response.MemberInactive();
+      }
     }
+    else
+    {
+      response.CouldNotFindMember(memberResult);
+    }
+  }
 }
