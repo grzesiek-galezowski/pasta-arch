@@ -36,7 +36,7 @@ public static class CreateBookingHandler
         }
         else
         {
-          response.CouldNotGetClass(classResult);
+          response.CouldNotGetClass(classResult.Errors);
         }
       }
       else
@@ -46,7 +46,7 @@ public static class CreateBookingHandler
     }
     else
     {
-      response.CouldNotFindMember(memberResult);
+      response.CouldNotFindMember(memberResult.Errors);
     }
   }
 }

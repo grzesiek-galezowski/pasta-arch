@@ -1,48 +1,38 @@
-﻿using System.Net;
-using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
-using PastaFit.Core.Domain;
+﻿using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace PastaFit.ComponentTests;
 
 public class BookingComponentTests : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly HttpClient _client;
+  [Fact]
+  public async Task Can_Get_Classes()
+  {
+    var driver = new BookingComponentDriver();
+    driver.Start();
 
-    public BookingComponentTests(WebApplicationFactory<Program> factory)
-    {
-        _client = factory.CreateClient();
-    }
+    var testResponse = await driver.RequestGettingClasses();
 
-    [Fact]
-    public async Task Can_Get_Classes()
-    {
-        var response = await _client.GetAsync("/classes");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        
-        var json = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Yoga", json);
-    }
+    testResponse.ShouldBeSuccess();
+    await testResponse.ShouldContain("Yoga");
+  }
 
-    [Fact]
-    public async Task Can_Book_And_Cancel_Class()
-    {
-        var members = await _client.GetFromJsonAsync<List<Member>>("/members");
-        var member = members!.First(m => m.IsActive);
+  [Fact]
+  public async Task Can_Book_And_Cancel_Class()
+  {
+    var driver = new BookingComponentDriver();
+    driver.Start();
+    
+    var membersResponse = await driver.GetMembers();
+    var getClassesResponse = await driver.GetClasses();
+    var addBookingResponse = await driver.AddBooking(
+      membersResponse.ExtractFirstActiveMember().Id,
+      getClassesResponse.ExtractFirstClass().Id);
+    var booking = await addBookingResponse.ExtractBooking();
+    
+    var deleteBookingResponse = await driver.RequestDeletingBooking(booking);
 
-        var classes = await _client.GetFromJsonAsync<List<ClassAvailability>>("/classes");
-        var cls = classes!.First();
-
-        var bookingReq = new { memberId = member.Id, classId = cls.Id };
-
-        var bookResp = await _client.PostAsJsonAsync("/bookings", bookingReq);
-        Assert.Equal(HttpStatusCode.Created, bookResp.StatusCode);
-
-        var booking = await bookResp.Content.ReadFromJsonAsync<Booking>();
-
-        var cancelResp = await _client.DeleteAsync($"/bookings/{booking!.Id}");
-        Assert.Equal(HttpStatusCode.NoContent, cancelResp.StatusCode);
-    }
+    deleteBookingResponse.ShouldBeSuccessful();
+  }
 }
 
 public record ClassAvailability(Guid Id, string Name, int Capacity, int Available);

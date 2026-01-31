@@ -1,17 +1,15 @@
-﻿using FunqTypes;
-using PastaFit.Core.Domain;
+﻿using PastaFit.Core.Domain;
 using PastaFit.Features.Booking.Ports;
 
 namespace PastaFit.Features.Booking.Adapters;
 
-public class CreateBookingResponseInProgress
-  : ICreateBookingResponseInProgress
+public class CreateBookingResponseInProgress : ICreateBookingResponseInProgress
 {
   public IResult Result { get; private set; } = Results.InternalServerError();
 
   public void AlreadyBooked()
   {
-    Result = Results.BadRequest(new BookingError.AlreadyBooked()); //bug use asp.net core Result instead
+    Result = Results.BadRequest(new BookingError.AlreadyBooked());
   }
 
   public void ClassFull()
@@ -24,9 +22,9 @@ public class CreateBookingResponseInProgress
     Result = Results.Created($"/bookings/{booking.Id}", booking);
   }
 
-  public void CouldNotGetClass(Result<Class, BookingError> classResult)
+  public void CouldNotGetClass(List<BookingError> getClassErrors)
   {
-    Result = Results.BadRequest(classResult.Errors.ToArray());
+    Result = Results.BadRequest(getClassErrors.ToArray());
   }
 
   public void MemberInactive()
@@ -34,8 +32,8 @@ public class CreateBookingResponseInProgress
     Result = Results.BadRequest(new BookingError.MemberInactive());
   }
 
-  public void CouldNotFindMember(Result<Member, BookingError> memberResult)
+  public void CouldNotFindMember(List<BookingError> memberErrors)
   {
-    Result = Results.BadRequest(memberResult.Errors.ToArray());
+    Result = Results.BadRequest(memberErrors.ToArray());
   }
 }

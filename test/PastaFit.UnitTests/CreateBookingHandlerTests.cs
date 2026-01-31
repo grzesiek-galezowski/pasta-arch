@@ -25,7 +25,7 @@ public class CreateBookingHandlerTests
       repository,
       response);
 
-    response.ReceivedOnly(1).CouldNotFindMember(fail);
+    response.ReceivedOnly(1).CouldNotFindMember(fail.Errors);
   }
 
   [Fact]
@@ -112,6 +112,6 @@ public class CreateBookingHandlerTests
       repo,
       response);
 
-    response.ReceivedOnly(1).CouldNotGetClass(getClassResult);
+    response.ReceivedOnly(1).CouldNotGetClass(getClassResult.Errors);
   }
 }
