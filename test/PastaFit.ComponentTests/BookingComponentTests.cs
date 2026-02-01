@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc.Testing;
+using PastaFit.ComponentTests.Automation;
 
 namespace PastaFit.ComponentTests;
 

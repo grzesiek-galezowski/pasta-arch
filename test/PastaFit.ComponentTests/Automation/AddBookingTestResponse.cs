@@ -2,7 +2,7 @@
 using System.Net.Http.Json;
 using PastaFit.Core.Domain;
 
-namespace PastaFit.ComponentTests;
+namespace PastaFit.ComponentTests.Automation;
 
 public class AddBookingTestResponse(HttpResponseMessage booking)
 {

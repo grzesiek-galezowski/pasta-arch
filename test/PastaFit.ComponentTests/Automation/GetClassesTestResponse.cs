@@ -1,4 +1,4 @@
-﻿namespace PastaFit.ComponentTests;
+﻿namespace PastaFit.ComponentTests.Automation;
 
 public class GetClassesTestResponse(List<ClassAvailability>? classes)
 {

@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using PastaFit.Core.Domain;
 
-namespace PastaFit.ComponentTests;
+namespace PastaFit.ComponentTests.Automation;
 
 public class BookingComponentDriver : IAsyncDisposable
 {

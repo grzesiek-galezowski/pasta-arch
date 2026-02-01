@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace PastaFit.ComponentTests;
+namespace PastaFit.ComponentTests.Automation;
 
 public class RequestGettingClassesTestResponse(HttpResponseMessage httpResponse)
 {

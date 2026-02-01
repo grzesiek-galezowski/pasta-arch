@@ -1,6 +1,6 @@
 ﻿using PastaFit.Core.Domain;
 
-namespace PastaFit.ComponentTests;
+namespace PastaFit.ComponentTests.Automation;
 
 public class GetMembersTestResponse(List<Member>? members)
 {
